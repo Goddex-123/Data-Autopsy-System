@@ -1,0 +1,29 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Output files (can be regenerated)
+output/*.png
+output/*.html
+output/*.json
+output/*.md
+output/*.csv
+
+# Keep output directory
+!output/.gitkeep
