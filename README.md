@@ -4,6 +4,9 @@
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Click_Here-brightgreen?style=for-the-badge)](https://data-autopsy-system.streamlit.app/)
+
+> **🎯 Try it now!** Click the **Live Demo** badge above to use the app instantly!
 
 ## Overview
 
@@ -18,15 +21,15 @@ Used in journalism, courts, and intelligence work.
 
 ## Features
 
-| Module | Description |
-|--------|-------------|
-| 🔍 **Provenance Analyzer** | Track data origins, collection methods, temporal patterns |
-| ⚖️ **Bias Detector** | Statistical tests for sampling and selection bias |
-| 🚨 **Anomaly Detector** | Benford's Law, outliers, fabrication signatures |
-| 🕳️ **Missing Data Forensics** | Detect intentional omissions and coverage gaps |
-| 🧪 **Robustness Tester** | Sensitivity analysis, bootstrap tests, fragility scoring |
-| 📊 **Visual Evidence** | Professional forensic visualizations |
-| 📋 **Report Generator** | Executive-style forensic reports |
+| Module                        | Description                                               |
+| ----------------------------- | --------------------------------------------------------- |
+| 🔍 **Provenance Analyzer**    | Track data origins, collection methods, temporal patterns |
+| ⚖️ **Bias Detector**          | Statistical tests for sampling and selection bias         |
+| 🚨 **Anomaly Detector**       | Benford's Law, outliers, fabrication signatures           |
+| 🕳️ **Missing Data Forensics** | Detect intentional omissions and coverage gaps            |
+| 🧪 **Robustness Tester**      | Sensitivity analysis, bootstrap tests, fragility scoring  |
+| 📊 **Visual Evidence**        | Professional forensic visualizations                      |
+| 📋 **Report Generator**       | Executive-style forensic reports                          |
 
 ## Installation
 
@@ -73,6 +76,7 @@ python examples/full_autopsy.py
 ```
 
 This generates:
+
 - Visual evidence in `output/`
 - Executive summary report
 - Detailed findings with risk scores
@@ -108,4 +112,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*"Data doesn't lie, but liars use data."* - This tool helps you find the truth.
+_"Data doesn't lie, but liars use data."_ - This tool helps you find the truth.
