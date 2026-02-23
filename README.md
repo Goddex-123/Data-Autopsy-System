@@ -5,6 +5,8 @@
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 ![CI Status](https://github.com/Goddex-123/Data-Autopsy-System/actions/workflows/ci.yml/badge.svg)
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Click%20Here-brightgreen?style=for-the-badge&logo=streamlit)](https://data-autopsy-system.streamlit.app)
+
 > **Automated Exploratory Data Analysis (EDA) and Quality Assurance platform for rapid dataset profiling and anomaly detection.**
 
 ---
