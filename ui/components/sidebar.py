@@ -17,6 +17,15 @@ def render_sidebar():
             type=["csv"],
             help="Upload a CSV file to perform forensic analysis",
         )
+        st.caption("— OR —")
+        if st.button("Load Sample Data", use_container_width=True, type="secondary"):
+            st.session_state["use_sample"] = True
+            
+        use_sample = st.session_state.get("use_sample", False)
+        if use_sample:
+            if st.button("🗑️ Clear Sample", use_container_width=True):
+                st.session_state["use_sample"] = False
+                use_sample = False
 
         st.markdown("---")
 
@@ -41,17 +50,7 @@ def render_sidebar():
 
         st.markdown("---")
 
-        st.header("🧪 Demo")
-        if st.button("Load Massive Sample Dataset", use_container_width=True, type="primary"):
-            st.session_state["use_sample"] = True
-            
-        use_sample = st.session_state.get("use_sample", False)
-        if use_sample:
-            if st.button("🗑️ Clear Sample", use_container_width=True):
-                st.session_state["use_sample"] = False
-                use_sample = False
 
-        st.markdown("---")
 
         st.header("ℹ️ About")
         st.markdown("""
