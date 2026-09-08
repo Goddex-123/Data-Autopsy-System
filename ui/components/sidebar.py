@@ -35,9 +35,21 @@ def render_sidebar():
         st.header("🎯 ML Audit (Optional)")
         target_column = st.text_input(
             "Target Column",
-            value="",
+            value="target",
             help="Specify the target column for leakage detection and ML analysis",
         )
+
+        st.markdown("---")
+
+        st.header("🧪 Demo")
+        if st.button("Load Massive Sample Dataset", use_container_width=True, type="primary"):
+            st.session_state["use_sample"] = True
+            
+        use_sample = st.session_state.get("use_sample", False)
+        if use_sample:
+            if st.button("🗑️ Clear Sample", use_container_width=True):
+                st.session_state["use_sample"] = False
+                use_sample = False
 
         st.markdown("---")
 
@@ -57,6 +69,7 @@ def render_sidebar():
         "quick_scan": run_quick,
         "generate_visuals": generate_visuals,
         "target_column": target_column if target_column.strip() else None,
+        "use_sample": use_sample,
     }
 
     return uploaded_file, options

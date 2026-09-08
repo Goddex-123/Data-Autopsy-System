@@ -19,6 +19,7 @@ from ui.components.header import render_header
 from ui.components.sidebar import render_sidebar
 from ui.components.score_cards import render_health_overview
 from ui.components.findings_display import render_findings_by_category, render_severity_summary
+from autopsy.sample_data import generate_massive_sample
 
 # ── Page Configuration ───────────────────────────────────────────────
 st.set_page_config(
@@ -146,14 +147,18 @@ def main():
 
     uploaded_file, options = render_sidebar()
 
-    if uploaded_file is None:
+    if uploaded_file is None and not options.get("use_sample"):
         _render_welcome()
         return
 
     # Load data
     try:
-        df = pd.read_csv(uploaded_file)
-        st.success(f"✅ Loaded **{uploaded_file.name}** — {len(df):,} rows × {len(df.columns)} columns")
+        if options.get("use_sample"):
+            df = generate_massive_sample(n_rows=25000)
+            st.success(f"✅ Loaded **Massive Sample Dataset** — {len(df):,} rows × {len(df.columns)} columns")
+        else:
+            df = pd.read_csv(uploaded_file)
+            st.success(f"✅ Loaded **{uploaded_file.name}** — {len(df):,} rows × {len(df.columns)} columns")
     except Exception as e:
         st.error(f"❌ Error loading file: {e}")
         return
