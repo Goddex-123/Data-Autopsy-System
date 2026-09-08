@@ -4,6 +4,8 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Click%20Here-brightgreen?style=for-the-badge&logo=streamlit)](https://data-autopsy-system.streamlit.app)
+
 > **A professional, scientifically defensible, production-quality data auditing platform.**
 
 ---
