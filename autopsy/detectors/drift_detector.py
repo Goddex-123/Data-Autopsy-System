@@ -45,7 +45,7 @@ class DriftDetector:
                 id="DRIFT-NOCOLS-001",
                 category="drift",
                 severity=Severity.HIGH,
-                confidence=0.95,
+                evidence_score=0.95,
                 title="No shared columns between reference and current datasets",
                 description="Cannot perform drift analysis without shared columns.",
                 evidence={
@@ -80,6 +80,7 @@ class DriftDetector:
         # KS test
         try:
             ks_stat, ks_pvalue = stats.ks_2samp(ref_vals, cur_vals)
+            wasserstein_dist = stats.wasserstein_distance(ref_vals, cur_vals)
         except Exception:
             return None
 
@@ -100,7 +101,7 @@ class DriftDetector:
             id=f"DRIFT-NUM-{col[:20].upper().replace(' ', '_')}",
             category="drift",
             severity=severity,
-            confidence=round(min(0.9, 1 - ks_pvalue), 2),
+            evidence_score=round(min(0.9, 1 - ks_pvalue), 2),
             title=f"Numerical drift detected in '{col}'",
             description=(
                 f"Distribution of '{col}' has shifted between reference and current. "
@@ -111,6 +112,8 @@ class DriftDetector:
                 "ks_statistic": round(ks_stat, 4),
                 "ks_pvalue": round(ks_pvalue, 6),
                 "psi": round(psi, 4),
+                "wasserstein_distance": round(wasserstein_dist, 4),
+                "magnitude": drift_label,
                 "ref_mean": round(float(ref_vals.mean()), 4),
                 "cur_mean": round(float(cur_vals.mean()), 4),
                 "ref_std": round(float(ref_vals.std()), 4),
@@ -118,7 +121,7 @@ class DriftDetector:
                 "ref_count": len(ref_vals),
                 "cur_count": len(cur_vals),
             },
-            statistical_test="KS two-sample test + Population Stability Index (PSI)",
+            statistical_test="KS test + PSI + Wasserstein distance",
             recommendation=(
                 "Investigate whether the distribution shift reflects a real change "
                 "or a data collection issue. Retrain models if drift is significant."
@@ -160,21 +163,24 @@ class DriftDetector:
             return None
 
         severity = Severity.HIGH if p_value < 0.001 else Severity.MEDIUM
+        magnitude = "HIGH" if p_value < 0.001 else "MEDIUM"
 
         return Finding(
             id=f"DRIFT-CAT-{col[:20].upper().replace(' ', '_')}",
             category="drift",
             severity=severity,
-            confidence=round(min(0.9, 1 - p_value), 2),
+            evidence_score=round(min(0.9, 1 - p_value), 2),
             title=f"Categorical drift detected in '{col}'",
             description=(
                 f"Category distribution of '{col}' has significantly changed "
-                f"between reference and current datasets (p={p_value:.4f})."
+                f"between reference and current datasets (p={p_value:.4f}). "
+                f"Magnitude: {magnitude}."
             ),
             column=col,
             evidence={
                 "chi2_statistic": round(chi2, 2),
                 "p_value": round(p_value, 6),
+                "magnitude": magnitude,
                 "n_categories": len(all_cats),
                 "ref_count": len(ref_vals),
                 "cur_count": len(cur_vals),

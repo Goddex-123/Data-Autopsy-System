@@ -55,7 +55,7 @@ class QualityDetector:
                     id=f"DQ-CONST-{col[:20].upper().replace(' ', '_')}",
                     category="data_quality",
                     severity=Severity.MEDIUM,
-                    confidence=0.95,
+                    evidence_score=0.95,
                     title=f"Constant column: '{col}'",
                     description=f"Column contains only {nunique} unique value(s) and provides no analytical value.",
                     column=col,
@@ -82,7 +82,7 @@ class QualityDetector:
                             id=f"DQ-DUPCOL-{col1[:10]}_{col2[:10]}".upper().replace(" ", "_"),
                             category="data_quality",
                             severity=Severity.MEDIUM,
-                            confidence=0.99,
+                            evidence_score=0.99,
                             title=f"Duplicate columns: '{col1}' ≡ '{col2}'",
                             description="These columns contain identical data.",
                             columns=[col1, col2],
@@ -125,7 +125,7 @@ class QualityDetector:
                     id=f"DQ-CONSISTENCY-CASE-{col[:20].upper().replace(' ', '_')}",
                     category="data_quality",
                     severity=Severity.MEDIUM,
-                    confidence=0.9,
+                    evidence_score=0.9,
                     title=f"Inconsistent casing in '{col}'",
                     description=(
                         f"{len(inconsistencies)} group(s) of values differ only in casing or whitespace."
@@ -156,7 +156,7 @@ class QualityDetector:
                     id=f"DQ-WHITESPACE-{col[:20].upper().replace(' ', '_')}",
                     category="data_quality",
                     severity=Severity.LOW,
-                    confidence=0.95,
+                    evidence_score=0.95,
                     title=f"Whitespace issues in '{col}'",
                     description=f"{ws_count} values ({pct:.1f}%) have leading or trailing whitespace.",
                     column=col,
@@ -184,7 +184,7 @@ class QualityDetector:
                     id=f"DQ-MIXEDTYPE-{col[:20].upper().replace(' ', '_')}",
                     category="data_quality",
                     severity=Severity.MEDIUM,
-                    confidence=0.7,
+                    evidence_score=0.7,
                     title=f"Mixed data types in '{col}'",
                     description=(
                         f"Column contains both numeric ({numeric_pct:.0f}%) and "
@@ -216,7 +216,7 @@ class QualityDetector:
                     id=f"DQ-HIGHCARD-{col[:20].upper().replace(' ', '_')}",
                     category="data_quality",
                     severity=Severity.INFO,
-                    confidence=0.6,
+                    evidence_score=0.6,
                     title=f"High cardinality in '{col}'",
                     description=(
                         f"{uniqueness*100:.1f}% unique values. "

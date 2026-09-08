@@ -31,28 +31,111 @@ st.set_page_config(
 # ── Theme CSS ────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+    
+    :root {
+        --linear-bg: #0e0e11;
+        --linear-surface: rgba(255, 255, 255, 0.03);
+        --linear-border: rgba(255, 255, 255, 0.08);
+        --linear-text: #ededed;
+        --linear-text-muted: #8a8f98;
+        --linear-accent: #5e6ad2;
+        --linear-accent-glow: rgba(94, 106, 210, 0.3);
+    }
+    
+    .stApp {
+        font-family: 'Inter', sans-serif;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 500 !important;
+        letter-spacing: -0.02em !important;
+    }
+    
     .main-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-        padding: 2rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
+        background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.0) 100%);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        padding: 2.5rem;
+        border-radius: 16px;
+        border: 1px solid var(--linear-border);
+        margin-bottom: 2.5rem;
         text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+        position: relative;
+        overflow: hidden;
     }
-    .main-header h1 { color: #00d4ff; font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .main-header p { color: #a0a0a0; font-size: 1.1rem; }
+    
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 50%;
+        transform: translateX(-50%);
+        width: 60%; height: 1px;
+        background: radial-gradient(circle, var(--linear-accent) 0%, transparent 100%);
+        opacity: 0.8;
+    }
+    
+    .main-header h1 {
+        font-size: 2.5rem;
+        font-weight: 600 !important;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(to right, #ffffff, #a1a1aa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .main-header p {
+        color: var(--linear-text-muted);
+        font-size: 1.1rem;
+        font-weight: 400;
+        margin-top: 0;
+    }
+    
     .score-card {
-        background: linear-gradient(135deg, #2C3E50 0%, #3d5a73 100%);
-        border-radius: 10px; padding: 1.2rem; text-align: center;
-        color: white; margin: 0.5rem 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        background: var(--linear-surface);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--linear-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        text-align: center;
+        margin: 0.5rem 0;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     }
-    .score-card h3 { font-size: 2.2rem; margin: 0; }
-    .score-card p { margin: 0.3rem 0 0 0; opacity: 0.8; font-size: 0.85rem; }
-    .score-good { border-left: 5px solid #27AE60; }
-    .score-warning { border-left: 5px solid #F39C12; }
-    .score-danger { border-left: 5px solid #E74C3C; }
-    .stProgress > div > div > div > div { background-color: #00d4ff; }
+    
+    .score-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        border-color: rgba(255,255,255,0.15);
+    }
+    
+    .score-card h3 {
+        font-size: 2.5rem;
+        margin: 0;
+        font-weight: 600 !important;
+        letter-spacing: -0.03em !important;
+    }
+    
+    .score-card p {
+        margin: 0.5rem 0 0 0;
+        color: var(--linear-text-muted);
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .score-good { border-top: 3px solid #27AE60; }
+    .score-warning { border-top: 3px solid #F39C12; }
+    .score-danger { border-top: 3px solid #E74C3C; }
+    
+    .stProgress > div > div > div > div {
+        background: linear-gradient(90deg, var(--linear-accent), #8b96f5);
+        border-radius: 4px;
+    }
 </style>
 """, unsafe_allow_html=True)
 

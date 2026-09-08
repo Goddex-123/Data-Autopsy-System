@@ -38,15 +38,65 @@ class LeakageDetector:
 
     def analyze(self) -> List[Finding]:
         """Run ML audit analysis."""
-        if not self.target_column or self.target_column not in self.data.columns:
-            return []
-
         findings: List[Finding] = []
+
+        if not self.target_column:
+            findings.extend(self._suggest_potential_targets())
+            return findings
+
+        if self.target_column not in self.data.columns:
+            findings.append(Finding(
+                id="ML-TARGET-MISSING",
+                category="ml_audit",
+                severity=Severity.HIGH,
+                evidence_score=1.0,
+                title="Target column not found",
+                description=f"The specified target column '{self.target_column}' is not in the dataset.",
+                recommendation="Verify the target column name.",
+            ))
+            return findings
+
+        target = self.data[self.target_column].dropna()
+        if len(target) < 10 or target.nunique() < 2:
+            findings.append(Finding(
+                id="ML-TARGET-INVALID",
+                category="ml_audit",
+                severity=Severity.HIGH,
+                evidence_score=1.0,
+                title="Invalid target column",
+                description=f"Target column '{self.target_column}' has insufficient data or < 2 unique values.",
+                column=self.target_column,
+                recommendation="A target column must have at least 2 distinct values and sufficient non-null data for ML.",
+            ))
+            return findings
+
         findings.extend(self._detect_target_leakage())
         findings.extend(self._analyze_feature_relationships())
         findings.extend(self._detect_class_imbalance())
         findings.extend(self._detect_feature_redundancy())
         return findings
+
+    def _suggest_potential_targets(self) -> List[Finding]:
+        """Suggest columns that might be ML targets based on names."""
+        suggestions = []
+        target_keywords = ["target", "label", "class", "outcome", "status", "result"]
+        
+        for col in self.data.columns:
+            if any(kw in col.lower() for kw in target_keywords):
+                suggestions.append(col)
+                
+        if suggestions:
+            return [Finding(
+                id="ML-TARGET-SUGGEST",
+                category="ml_audit",
+                severity=Severity.INFO,
+                evidence_score=0.8,
+                title="Potential ML targets found",
+                description=f"No target column specified, but found potential targets: {', '.join(suggestions[:5])}.",
+                evidence={"suggested_targets": suggestions},
+                recommendation="Specify a target column to enable Target Leakage and ML Feature analyses.",
+            )]
+        return []
 
     def _detect_target_leakage(self) -> List[Finding]:
         """Detect features suspiciously correlated with the target."""
@@ -74,7 +124,7 @@ class LeakageDetector:
                         id=f"ML-LEAK-{col[:20].upper().replace(' ', '_')}",
                         category="ml_audit",
                         severity=Severity.CRITICAL,
-                        confidence=round(abs(corr), 2),
+                        evidence_score=round(abs(corr), 2),
                         title=f"Potential target leakage: '{col}'",
                         description=(
                             f"Feature '{col}' has {abs(corr):.3f} correlation with target "
@@ -137,7 +187,7 @@ class LeakageDetector:
                 id="ML-FEATURES-001",
                 category="ml_audit",
                 severity=Severity.INFO,
-                confidence=0.8,
+                evidence_score=0.8,
                 title=f"Feature-target relationship summary",
                 description=(
                     f"Top correlated features with '{self.target_column}' identified."
@@ -174,7 +224,7 @@ class LeakageDetector:
                 id="ML-IMBALANCE-001",
                 category="ml_audit",
                 severity=severity,
-                confidence=0.9,
+                evidence_score=0.9,
                 title=f"Target class imbalance ({ratio:.1f}:1)",
                 description=(
                     f"Target '{self.target_column}' has an imbalance ratio of {ratio:.1f}:1. "
@@ -223,7 +273,7 @@ class LeakageDetector:
                 id="ML-REDUNDANCY-001",
                 category="ml_audit",
                 severity=Severity.MEDIUM,
-                confidence=0.8,
+                evidence_score=0.8,
                 title=f"{len(redundant_pairs)} redundant feature pair(s) detected",
                 description=(
                     f"Features with >{self.config.feature_redundancy_threshold:.0%} "

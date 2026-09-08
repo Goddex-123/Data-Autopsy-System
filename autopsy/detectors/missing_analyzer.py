@@ -70,7 +70,7 @@ class MissingDataAnalyzer:
                 id=f"MISS-COL-{col[:20].upper().replace(' ', '_')}",
                 category="missing_data",
                 severity=severity,
-                confidence=0.95,
+                evidence_score=0.95,
                 title=f"Missing values in '{col}'",
                 description=f"{missing_count:,} values ({missing_pct:.1f}%) are missing.",
                 column=col,
@@ -108,7 +108,7 @@ class MissingDataAnalyzer:
                                 id=f"MISS-TOGETHER-{col1[:10]}_{col2[:10]}".upper().replace(" ", "_"),
                                 category="missing_data",
                                 severity=Severity.MEDIUM,
-                                confidence=round(together_rate, 2),
+                                evidence_score=round(together_rate, 2),
                                 title=f"Correlated missingness: '{col1}' ↔ '{col2}'",
                                 description=(
                                     f"These columns tend to be missing together "
@@ -136,7 +136,7 @@ class MissingDataAnalyzer:
                     id=f"MISS-SEQ-{col[:20].upper().replace(' ', '_')}",
                     category="missing_data",
                     severity=Severity.MEDIUM,
-                    confidence=0.7,
+                    evidence_score=0.7,
                     title=f"Sequential missing values in '{col}'",
                     description=(
                         f"{len(long_runs)} run(s) of ≥5 consecutive missing values detected. "
@@ -224,7 +224,7 @@ class MissingDataAnalyzer:
                     id=f"MISS-MAR-{col[:20].upper().replace(' ', '_')}",
                     category="missing_data",
                     severity=Severity.MEDIUM,
-                    confidence=round(min(0.8, 0.5 + len(mar_evidence) * 0.1), 2),
+                    evidence_score=round(min(0.8, 0.5 + len(mar_evidence) * 0.1), 2),
                     title=f"Evidence of non-random missingness in '{col}'",
                     description=(
                         f"Missingness in '{col}' appears related to {len(mar_evidence)} "
@@ -243,8 +243,8 @@ class MissingDataAnalyzer:
                     ),
                     limitations=(
                         "This test detects relationships between missingness and observed "
-                        "variables. It cannot distinguish MAR from MNAR. MNAR (Missing Not "
-                        "At Random) cannot be established from observed data alone."
+                        "variables. It CANNOT distinguish MAR from MNAR. MNAR (Missing Not "
+                        "At Random) can never be ruled out from observed data alone."
                     ),
                 ))
             else:
@@ -252,7 +252,7 @@ class MissingDataAnalyzer:
                     id=f"MISS-MCAR-{col[:20].upper().replace(' ', '_')}",
                     category="missing_data",
                     severity=Severity.INFO,
-                    confidence=0.4,
+                    evidence_score=0.4,
                     title=f"No strong MAR evidence for '{col}'",
                     description=(
                         f"No statistically significant relationship found between "
@@ -261,11 +261,11 @@ class MissingDataAnalyzer:
                     ),
                     column=col,
                     evidence={"missing_count": int(n_missing)},
-                    recommendation="Treat as potentially MCAR, but note this does not prove randomness.",
+                    recommendation="Treat as potentially MCAR, but remember this does not prove randomness.",
                     limitations=(
-                        "Failure to detect MAR does not prove MCAR. The test has limited "
+                        "Failure to detect MAR DOES NOT prove MCAR. The test has limited "
                         "power with small samples and cannot detect nonlinear relationships. "
-                        "MNAR remains a possibility that cannot be ruled out from data alone."
+                        "MNAR remains a strong possibility that cannot be ruled out."
                     ),
                 ))
 
@@ -297,7 +297,7 @@ class MissingDataAnalyzer:
                                 id=f"MISS-SENTINEL-{col[:20].upper().replace(' ', '_')}",
                                 category="missing_data",
                                 severity=Severity.MEDIUM,
-                                confidence=0.7,
+                                evidence_score=0.7,
                                 title=f"Possible sentinel value in '{col}'",
                                 description=(
                                     f"Value {sentinel} appears {count} times ({pct:.1f}%). "
@@ -310,6 +310,7 @@ class MissingDataAnalyzer:
                                     "percentage": round(pct, 2),
                                 },
                                 recommendation="Verify whether this value represents actual data or is a placeholder.",
+                                limitations="Context is required. Some sentinel-like values (e.g. 0 or 99) may be valid measurements depending on the domain."
                             ))
                             break
 
@@ -323,7 +324,7 @@ class MissingDataAnalyzer:
                                 id=f"MISS-DEFAULT-{col[:20].upper().replace(' ', '_')}",
                                 category="missing_data",
                                 severity=Severity.LOW,
-                                confidence=0.6,
+                                evidence_score=0.6,
                                 title=f"Default/placeholder value in '{col}'",
                                 description=(
                                     f"'{sentinel}' appears {count} times, possibly representing missing data."
@@ -369,7 +370,7 @@ class MissingDataAnalyzer:
                             id=f"MISS-YEARSGAP-{col[:20].upper().replace(' ', '_')}",
                             category="missing_data",
                             severity=Severity.LOW,
-                            confidence=0.7,
+                            evidence_score=0.7,
                             title=f"Missing year(s) in '{col}'",
                             description=f"{len(missing_years)} year(s) not represented in the data.",
                             column=col,

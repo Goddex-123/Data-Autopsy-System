@@ -81,7 +81,7 @@ class RobustnessTester:
                     id=f"ROBUST-OUTLIER-{col[:20].upper().replace(' ', '_')}",
                     category="robustness",
                     severity=Severity.MEDIUM,
-                    confidence=round(min(0.8, change_pct / 50), 2),
+                    evidence_score=round(min(0.8, change_pct / 50), 2),
                     title=f"Outliers substantially influence '{col}'",
                     description=(
                         f"Removing {outlier_mask.sum()} outliers changes the mean by "
@@ -135,7 +135,7 @@ class RobustnessTester:
                         id=f"ROBUST-SUBGROUP-{cat_col[:10]}_{num_col[:10]}".upper().replace(" ", "_"),
                         category="robustness",
                         severity=Severity.MEDIUM,
-                        confidence=0.7,
+                        evidence_score=0.7,
                         title=f"Subgroup differences: '{num_col}' by '{cat_col}'",
                         description=(
                             f"Mean of '{num_col}' varies by up to {dev_pct:.0f}% "
@@ -183,7 +183,7 @@ class RobustnessTester:
                                     id=f"ROBUST-SIMPSON-{col1[:8]}_{col2[:8]}".upper().replace(" ", "_"),
                                     category="robustness",
                                     severity=Severity.HIGH,
-                                    confidence=0.75,
+                                    evidence_score=0.75,
                                     title=f"Possible Simpson's Paradox: '{col1}' ↔ '{col2}'",
                                     description=(
                                         f"Overall correlation ({overall_corr:.2f}) reverses "

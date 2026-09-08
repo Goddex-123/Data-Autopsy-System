@@ -40,6 +40,10 @@ _IP_PATTERN = re.compile(
     r"^(?:\d{1,3}\.){3}\d{1,3}$"
 )
 
+_URL_PATTERN = re.compile(
+    r"^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$"
+)
+
 _PII_NAME_PATTERNS = re.compile(
     r"(?:^|_)(email|e_mail|phone|tel|mobile|cell|ip|ip_address|"
     r"ssn|social_security|aadhaar|aadhar|pan|passport|"
@@ -47,6 +51,10 @@ _PII_NAME_PATTERNS = re.compile(
     r"name|first_name|last_name|full_name|surname|"
     r"address|street|city|zip|postal|zipcode)(?:$|_)",
     re.IGNORECASE,
+)
+
+_CURRENCY_PATTERN = re.compile(
+    r"^(?:[$€£¥₹]|USD|EUR|GBP|JPY|INR)?\s*[\d,]+(?:\.\d{2})?\s*(?:[$€£¥₹]|USD|EUR|GBP|JPY|INR)?$"
 )
 
 
@@ -171,20 +179,26 @@ class SchemaAnalyzer:
 
     def _check_pii_by_name(self, col: str) -> Optional[SemanticType]:
         """Check if column name suggests PII."""
+        # Tokenize column name to prevent substring false positives (e.g., filename != name)
+        # Using word boundaries
         col_lower = col.lower()
-        if any(kw in col_lower for kw in ["email", "e_mail"]):
+        tokens = set(re.split(r'[^a-z0-9]', col_lower))
+        
+        if "email" in tokens or "e_mail" in tokens:
             return SemanticType.PII_EMAIL
-        if any(kw in col_lower for kw in ["phone", "tel", "mobile", "cell"]):
+        if any(kw in tokens for kw in ["phone", "tel", "mobile", "cell"]):
             return SemanticType.PII_PHONE
-        if any(kw in col_lower for kw in ["ip", "ip_address"]):
+        if any(kw in tokens for kw in ["ip"]):
             return SemanticType.PII_IP
-        if any(kw in col_lower for kw in [
-            "ssn", "social_security", "aadhaar", "aadhar", "pan",
-            "passport", "credit_card", "card_number", "cvv",
-            "name", "first_name", "last_name", "full_name", "surname",
-            "address", "street", "zip", "postal", "zipcode",
-        ]):
+        if any(kw in tokens for kw in ["ssn", "social_security", "aadhaar", "aadhar", "pan", "passport"]):
+            return SemanticType.PII_SSN
+        if any(kw in tokens for kw in ["credit_card", "card_number", "cvv"]):
             return SemanticType.PII_OTHER
+        if any(kw in tokens for kw in ["name", "first_name", "last_name", "full_name", "surname"]):
+            return SemanticType.PII_NAME
+        if any(kw in tokens for kw in ["address", "street", "zip", "postal", "zipcode", "city", "state", "country"]):
+            return SemanticType.PII_ADDRESS
+            
         return None
 
     def _is_likely_identifier(self, col: str, series: pd.Series) -> bool:
@@ -325,6 +339,16 @@ class SchemaAnalyzer:
         ip_matches = str_sample.str.match(_IP_PATTERN, na=False).mean()
         if ip_matches > 0.5:
             return SemanticType.PII_IP
+            
+        # URL check
+        url_matches = str_sample.str.match(_URL_PATTERN, na=False).mean()
+        if url_matches > 0.5:
+            return SemanticType.URL
+            
+        # Currency check
+        currency_matches = str_sample.str.match(_CURRENCY_PATTERN, na=False).mean()
+        if currency_matches > 0.5:
+            return SemanticType.CURRENCY
 
         return None
 

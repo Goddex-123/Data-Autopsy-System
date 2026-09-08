@@ -72,7 +72,7 @@ class BiasDetector:
                     id=f"BIAS-IMBAL-{col[:20].upper().replace(' ', '_')}",
                     category="bias",
                     severity=severity,
-                    confidence=round(min(0.85, 0.5 + imbalance_ratio / 200), 2),
+                    evidence_score=round(min(0.85, 0.5 + imbalance_ratio / 200), 2),
                     title=f"Class imbalance in '{col}'",
                     description=(
                         f"The most frequent value '{value_counts.index[0]}' appears "
@@ -107,7 +107,7 @@ class BiasDetector:
                     id=f"BIAS-DOMINANT-{col[:20].upper().replace(' ', '_')}",
                     category="bias",
                     severity=Severity.LOW,
-                    confidence=0.7,
+                    evidence_score=0.7,
                     title=f"Dominant category in '{col}'",
                     description=(
                         f"'{value_counts.index[0]}' represents {max_prop*100:.1f}% of values."
@@ -142,7 +142,7 @@ class BiasDetector:
                     id=f"BIAS-SKEW-{col[:20].upper().replace(' ', '_')}",
                     category="bias",
                     severity=Severity.LOW,
-                    confidence=round(min(0.7, abs(skewness) / 10), 2),
+                    evidence_score=round(min(0.7, abs(skewness) / 10), 2),
                     title=f"Highly skewed distribution in '{col}'",
                     description=(
                         f"Skewness: {skewness:.2f} "
@@ -219,7 +219,7 @@ class BiasDetector:
                     id=f"BIAS-POP-{col[:20].upper().replace(' ', '_')}",
                     category="bias",
                     severity=severity,
-                    confidence=round(min(0.9, 1 - p_value), 2),
+                    evidence_score=round(min(0.9, 1 - p_value), 2),
                     title=f"Population mismatch in '{col}'",
                     description=(
                         f"The distribution of '{col}' significantly differs from "
@@ -263,7 +263,7 @@ class BiasDetector:
                         id=f"BIAS-CORR-{col1[:10]}_{col2[:10]}".upper().replace(" ", "_"),
                         category="bias",
                         severity=Severity.MEDIUM,
-                        confidence=round(abs(corr), 2),
+                        evidence_score=round(abs(corr), 2),
                         title=f"Near-perfect correlation: '{col1}' ↔ '{col2}'",
                         description=(
                             f"Pearson correlation of {corr:.3f} suggests these columns "
@@ -306,7 +306,7 @@ class BiasDetector:
                         id=f"BIAS-TEMPORAL-{col[:20].upper().replace(' ', '_')}",
                         category="bias",
                         severity=Severity.LOW,
-                        confidence=0.6,
+                        evidence_score=0.6,
                         title=f"Incomplete temporal coverage in '{col}'",
                         description=(
                             f"{len(missing_months)} month(s) not represented in the data."
@@ -335,7 +335,7 @@ class BiasDetector:
                 id="BIAS-SIZE-001",
                 category="bias",
                 severity=Severity.HIGH,
-                confidence=0.9,
+                evidence_score=0.9,
                 title="Very small sample size",
                 description=f"Dataset contains only {n} rows. Statistical analyses may be unreliable.",
                 evidence={"row_count": n},
@@ -346,7 +346,7 @@ class BiasDetector:
                 id="BIAS-SIZE-001",
                 category="bias",
                 severity=Severity.MEDIUM,
-                confidence=0.7,
+                evidence_score=0.7,
                 title="Small sample size",
                 description=f"Dataset contains {n} rows. Some analyses have limited statistical power.",
                 evidence={"row_count": n},

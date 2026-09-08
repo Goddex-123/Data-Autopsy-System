@@ -22,7 +22,7 @@ class TestFinding:
             id="TEST-001",
             category="test",
             severity=Severity.HIGH,
-            confidence=0.8,
+            evidence_score=0.8,
             title="Test finding",
             description="A test",
         )
@@ -33,27 +33,27 @@ class TestFinding:
         with pytest.raises(ValueError):
             Finding(
                 id="BAD", category="test", severity=Severity.LOW,
-                confidence=1.5, title="Bad", description="Invalid",
+                evidence_score=1.5, title="Bad", description="Invalid",
             )
 
     def test_confidence_zero_valid(self):
         f = Finding(
             id="OK", category="test", severity=Severity.INFO,
-            confidence=0.0, title="Ok", description="Valid",
+            evidence_score=0.0, title="Ok", description="Valid",
         )
-        assert f.confidence == 0.0
+        assert f.evidence_score == 0.0
 
     def test_string_severity_conversion(self):
         f = Finding(
             id="CONV", category="test", severity="medium",
-            confidence=0.5, title="Conv", description="Converts",
+            evidence_score=0.5, title="Conv", description="Converts",
         )
         assert f.severity == Severity.MEDIUM
 
     def test_to_dict(self):
         f = Finding(
             id="DICT", category="anomaly", severity=Severity.HIGH,
-            confidence=0.9, title="Dict", description="To dict test",
+            evidence_score=0.9, title="Dict", description="To dict test",
             evidence={"key": "value"},
         )
         d = f.to_dict()
@@ -64,7 +64,7 @@ class TestFinding:
     def test_to_json(self):
         f = Finding(
             id="JSON", category="test", severity=Severity.LOW,
-            confidence=0.5, title="JSON", description="JSON test",
+            evidence_score=0.5, title="JSON", description="JSON test",
         )
         j = f.to_json()
         assert '"severity": "low"' in j
@@ -72,14 +72,14 @@ class TestFinding:
     def test_severity_emoji(self):
         f = Finding(
             id="EMOJI", category="test", severity=Severity.CRITICAL,
-            confidence=1.0, title="Emoji", description="Test",
+            evidence_score=1.0, title="Emoji", description="Test",
         )
         assert f.severity_emoji == "🔴"
 
     def test_optional_fields(self):
         f = Finding(
             id="OPT", category="test", severity=Severity.INFO,
-            confidence=0.5, title="Opt", description="Optional fields",
+            evidence_score=0.5, title="Opt", description="Optional fields",
             column="col_a", columns=["col_a", "col_b"],
             statistical_test="t-test", recommendation="Do X",
             limitations="Cannot prove Y",

@@ -6,7 +6,7 @@ Each component score is 0-100, and the overall health score is a weighted averag
 """
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from .models import Finding, Severity, HealthScore, ScoreComponent
 
@@ -34,6 +34,7 @@ class ScoringEngine:
     def calculate_health_score(
         self,
         findings: List[Finding],
+        profile: Optional['DatasetProfile'] = None,
         completeness_pct: float = 100.0,
         validity_pct: float = 100.0,
         consistency_pct: float = 100.0,
@@ -43,6 +44,7 @@ class ScoringEngine:
 
         Args:
             findings: All findings from all detectors.
+            profile: The complete dataset profile.
             completeness_pct: Percentage of non-null cells (0-100).
             validity_pct: Percentage of valid values (0-100).
             consistency_pct: Percentage of consistent values (0-100).
@@ -51,6 +53,8 @@ class ScoringEngine:
             HealthScore with component breakdown.
         """
         components: Dict[str, ScoreComponent] = {}
+        total_rows = profile.row_count if profile else 1000
+        total_cols = profile.column_count if profile else 10
 
         # Completeness: directly from missing data percentage
         components["completeness"] = ScoreComponent(
@@ -81,7 +85,7 @@ class ScoringEngine:
 
         # Anomaly Risk: penalty-based from anomaly findings
         anomaly_findings = [f for f in findings if f.category == "anomaly"]
-        anomaly_score = self._penalty_score(anomaly_findings)
+        anomaly_score = self._penalty_score(anomaly_findings, total_rows, total_cols)
         components["anomaly_risk"] = ScoreComponent(
             name="Anomaly Risk",
             score=anomaly_score,
@@ -92,7 +96,7 @@ class ScoringEngine:
 
         # Bias Risk
         bias_findings = [f for f in findings if f.category == "bias"]
-        bias_score = self._penalty_score(bias_findings)
+        bias_score = self._penalty_score(bias_findings, total_rows, total_cols)
         components["bias_risk"] = ScoreComponent(
             name="Bias Risk",
             score=bias_score,
@@ -103,7 +107,7 @@ class ScoringEngine:
 
         # Privacy Risk
         privacy_findings = [f for f in findings if f.category == "privacy"]
-        privacy_score = self._penalty_score(privacy_findings)
+        privacy_score = self._penalty_score(privacy_findings, total_rows, total_cols)
         components["privacy_risk"] = ScoreComponent(
             name="Privacy Risk",
             score=privacy_score,
@@ -114,7 +118,7 @@ class ScoringEngine:
 
         # Robustness
         robustness_findings = [f for f in findings if f.category == "robustness"]
-        robustness_score = self._penalty_score(robustness_findings)
+        robustness_score = self._penalty_score(robustness_findings, total_rows, total_cols)
         components["robustness"] = ScoreComponent(
             name="Robustness",
             score=robustness_score,
@@ -151,28 +155,48 @@ class ScoringEngine:
             verdict_emoji=emoji,
         )
 
-    def _penalty_score(self, findings: List[Finding]) -> float:
+    def _penalty_score(self, findings: List[Finding], total_rows: int, total_cols: int) -> float:
         """
-        Calculate a score where 100 = no issues, and each finding
-        deducts points based on severity.
-
-        Score represents the "health" in that dimension (higher = better).
+        Calculate a score where 100 = no issues.
+        Penalties are proportional to the magnitude of the problem (affected rows/columns).
         """
         score = 100.0
 
-        penalties = {
-            Severity.CRITICAL: 25,
-            Severity.HIGH: 15,
-            Severity.MEDIUM: 8,
-            Severity.LOW: 3,
-            Severity.INFO: 0,
+        # Base multipliers by severity
+        severity_multiplier = {
+            Severity.CRITICAL: 1.0,
+            Severity.HIGH: 0.8,
+            Severity.MEDIUM: 0.5,
+            Severity.LOW: 0.2,
+            Severity.INFO: 0.05,
         }
 
         for finding in findings:
             severity = finding.severity if isinstance(finding.severity, Severity) else Severity(finding.severity)
-            penalty = penalties.get(severity, 5)
-            # Scale penalty by confidence
-            score -= penalty * finding.confidence
+            multiplier = severity_multiplier.get(severity, 0.5)
+            
+            # Determine affected proportion
+            proportion = 0.01  # default small penalty
+            
+            evidence = finding.evidence or {}
+            
+            # If finding affects specific counts of rows/cells
+            affected_count = evidence.get("affected_rows", evidence.get("affected_cells", evidence.get("outlier_count", evidence.get("anomaly_count"))))
+            if affected_count is not None and total_rows > 0:
+                proportion = float(affected_count) / float(total_rows)
+            # If finding is column-level (e.g. bias, drift)
+            elif finding.column or finding.columns:
+                num_cols = len(finding.columns) if finding.columns else 1
+                proportion = float(num_cols) / float(total_cols) if total_cols > 0 else 0.1
+
+            # Prevent proportion from being wildly over 1.0
+            proportion = min(1.0, max(0.01, proportion))
+            
+            # Max penalty per finding is 30 points (CRITICAL) scaled by proportion and evidence
+            max_points = 30.0
+            penalty = max_points * multiplier * proportion * finding.evidence_score
+            
+            score -= penalty
 
         return max(0.0, min(100.0, score))
 

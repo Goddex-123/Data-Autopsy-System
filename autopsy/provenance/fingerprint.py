@@ -55,11 +55,20 @@ class DatasetFingerprint:
         }
 
     def _content_hash(self) -> str:
-        """Generate SHA-256 hash of the dataset content."""
+        """Generate SHA-256 hash of the dataset content efficiently."""
         hasher = hashlib.sha256()
-        for col in sorted(self.data.columns):
-            col_data = self.data[col].to_string().encode("utf-8", errors="replace")
-            hasher.update(col_data)
+        try:
+            # Use pandas built-in hashing which is much more memory efficient
+            # than converting the entire column to a string.
+            hashes = pd.util.hash_pandas_object(self.data, index=False)
+            hasher.update(hashes.values.tobytes())
+        except Exception as e:
+            logger.warning(f"Failed to use optimized pandas hashing: {e}. Falling back.")
+            for col in sorted(self.data.columns):
+                # Fallback for complex object types if necessary
+                col_data = self.data[col].astype(str).str.encode("utf-8").sum()
+                if col_data:
+                    hasher.update(col_data)
         return hasher.hexdigest()
 
     def _schema_hash(self) -> str:

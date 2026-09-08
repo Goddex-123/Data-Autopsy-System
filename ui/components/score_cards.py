@@ -24,22 +24,22 @@ def render_health_overview(health_score: dict):
     verdict = health_score.get("verdict", "UNKNOWN")
 
     if overall >= 80:
-        color = "green"
+        color = "#27AE60"
         emoji = "✅"
     elif overall >= 60:
-        color = "orange"
+        color = "#F39C12"
         emoji = "⚠️"
     elif overall >= 40:
         color = "#E67E22"
         emoji = "🟠"
     else:
-        color = "red"
+        color = "#E74C3C"
         emoji = "🔴"
 
     st.markdown(f"""
-    <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 10px; margin: 1rem 0; border: 2px solid {color};">
-        <h2 style="color: {color};">{emoji} {verdict}</h2>
-        <p>Overall Health Score: <strong>{overall:.0f}/100</strong></p>
+    <div style="text-align: center; padding: 2rem; background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border-radius: 16px; margin: 1.5rem 0; border: 1px solid rgba(255, 255, 255, 0.08); border-top: 3px solid {color}; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+        <h2 style="color: {color}; margin-top: 0; font-size: 2.2rem; letter-spacing: -0.02em;">{emoji} {verdict}</h2>
+        <p style="color: #ededed; font-size: 1.1rem; margin-bottom: 0;">Overall Health Score: <strong style="font-size: 1.5rem; color: #ffffff;">{overall:.0f}</strong><span style="color: #8a8f98;"> / 100</span></p>
     </div>
     """, unsafe_allow_html=True)
 

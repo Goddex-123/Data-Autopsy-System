@@ -100,7 +100,7 @@ class PrivacyDetector:
                     id=f"PRIV-PII-{col[:20].upper().replace(' ', '_')}",
                     category="privacy",
                     severity=Severity.HIGH,
-                    confidence=round(pii_type["confidence"], 2),
+                    evidence_score=round(pii_type["confidence"], 2),
                     title=f"Potential PII detected: '{col}' ({pii_type['type']})",
                     description=(
                         f"Column '{col}' appears to contain {pii_type['type']} data "
@@ -130,7 +130,7 @@ class PrivacyDetector:
                 id="PRIV-RISK-001",
                 category="privacy",
                 severity=severity,
-                confidence=0.85,
+                evidence_score=0.85,
                 title=f"Privacy risk: {len(pii_columns)} potential PII column(s)",
                 description=(
                     f"Dataset contains {len(pii_columns)} column(s) with potential "
@@ -155,10 +155,12 @@ class PrivacyDetector:
 
         Returns dict with type, confidence, method, or None.
         """
-        # 1. Column name heuristics
-        col_lower = col.lower().replace("-", "_").replace(" ", "_")
+        # 1. Column name heuristics (tokenized to avoid false positives)
+        col_lower = col.lower()
+        tokens = set(re.split(r'[^a-z0-9]', col_lower))
+        
         for keyword, pii_type in _PII_COLUMN_KEYWORDS.items():
-            if keyword in col_lower:
+            if keyword in tokens:
                 return {
                     "type": pii_type,
                     "confidence": 0.7,

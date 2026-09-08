@@ -31,16 +31,33 @@ class Severity(str, Enum):
         }[self]
 
 
+class EvidenceLevel(str, Enum):
+    """Consistent evidence strength levels across the system."""
+    VERY_LOW = "very low"
+    LOW = "low"
+    MODERATE = "moderate"
+    HIGH = "high"
+    VERY_HIGH = "very high"
+
+
 class SemanticType(str, Enum):
     """Inferred semantic types for columns."""
     IDENTIFIER = "identifier"
     NUMERICAL_CONTINUOUS = "numerical/continuous"
     NUMERICAL_DISCRETE = "numerical/discrete"
     CATEGORICAL = "categorical"
+    ORDINAL = "ordinal"
     BOOLEAN = "boolean"
     DATETIME = "datetime"
     TEXT = "text"
     CONSTANT = "constant"
+    URL = "url"
+    CURRENCY = "currency"
+    PERCENTAGE = "percentage"
+    GEOLOCATION = "geolocation"
+    PII_NAME = "pii/name"
+    PII_ADDRESS = "pii/address"
+    PII_SSN = "pii/ssn"
     PII_EMAIL = "pii/email"
     PII_PHONE = "pii/phone"
     PII_IP = "pii/ip"
@@ -72,7 +89,7 @@ class Finding:
     id: str
     category: str
     severity: Severity
-    confidence: float
+    evidence_score: float  # Replaces 'confidence' to avoid p-value confusion
     title: str
     description: str
     evidence: Dict[str, Any] = field(default_factory=dict)
@@ -84,15 +101,30 @@ class Finding:
 
     def __post_init__(self):
         """Validate finding fields."""
-        if not 0.0 <= self.confidence <= 1.0:
-            raise ValueError(f"Confidence must be between 0.0 and 1.0, got {self.confidence}")
+        if not 0.0 <= self.evidence_score <= 1.0:
+            raise ValueError(f"Evidence score must be between 0.0 and 1.0, got {self.evidence_score}")
         if isinstance(self.severity, str):
             self.severity = Severity(self.severity)
+
+    @property
+    def evidence_level(self) -> EvidenceLevel:
+        """Map the numeric evidence score to a consistent qualitative level."""
+        if self.evidence_score >= 0.9:
+            return EvidenceLevel.VERY_HIGH
+        elif self.evidence_score >= 0.7:
+            return EvidenceLevel.HIGH
+        elif self.evidence_score >= 0.5:
+            return EvidenceLevel.MODERATE
+        elif self.evidence_score >= 0.3:
+            return EvidenceLevel.LOW
+        else:
+            return EvidenceLevel.VERY_LOW
 
     def to_dict(self) -> dict:
         """Convert finding to a serializable dictionary."""
         result = asdict(self)
         result["severity"] = self.severity.value
+        result["evidence_level"] = self.evidence_level.value
         return result
 
     def to_json(self) -> str:

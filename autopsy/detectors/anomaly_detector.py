@@ -133,13 +133,13 @@ class AnomalyDetector:
 
             if p_value < 0.01 and mad >= 0.012:
                 severity = Severity.MEDIUM if mad < 0.015 else Severity.HIGH
-                confidence = min(0.85, 1 - p_value) * (0.7 if n < 500 else 1.0)
+                evidence_score= min(0.85, 1 - p_value) * (0.7 if n < 500 else 1.0)
 
                 findings.append(Finding(
                     id=f"ANOM-BENFORD-{col[:20].upper().replace(' ', '_')}",
                     category="anomaly",
                     severity=severity,
-                    confidence=round(confidence, 2),
+                    evidence_score=round(confidence, 2),
                     title=f"Benford's Law deviation in '{col}'",
                     description=(
                         f"The first-digit distribution of '{col}' deviates from "
@@ -164,8 +164,8 @@ class AnomalyDetector:
                     ),
                     limitations=(
                         "Benford's Law is not universally applicable. Variables with "
-                        "artificial bounds, assigned values, or insufficient magnitude "
-                        "range may legitimately deviate from Benford's distribution."
+                        "artificial bounds, assigned values, psychological pricing (e.g. 9.99), "
+                        "or insufficient magnitude range may legitimately deviate from Benford's distribution."
                     ),
                 ))
 
@@ -232,13 +232,13 @@ class AnomalyDetector:
                     else Severity.MEDIUM if max_pct > 5
                     else Severity.LOW
                 )
-                confidence = min(0.9, 0.5 + max_pct / 100)
+                evidence_score = min(0.9, 0.5 + max_pct / 100)
 
                 findings.append(Finding(
                     id=f"ANOM-OUTLIER-{col[:20].upper().replace(' ', '_')}",
                     category="anomaly",
                     severity=severity,
-                    confidence=round(confidence, 2),
+                    evidence_score=round(evidence_score, 2),
                     title=f"Outliers detected in '{col}'",
                     description=(
                         f"Statistical outliers found using IQR and z-score methods."
@@ -258,17 +258,17 @@ class AnomalyDetector:
                         "legitimate extreme values, or different populations."
                     ),
                     limitations=(
-                        "Outlier detection is sensitive to distribution shape. "
-                        "IQR may over-flag in skewed distributions. "
-                        "Not all statistical outliers are data quality issues."
+                        "Outlier detection is highly sensitive to distribution shape. "
+                        "IQR routinely over-flags in skewed or heavy-tailed distributions. "
+                        "Do NOT assume outliers are errors or invalid data points."
                     ),
                 ))
 
-        # Ensemble with Isolation Forest (for datasets with multiple numeric cols)
+        # Ensemble with Isolation Forest and LOF (for datasets with multiple numeric cols)
         if len(numeric_cols) >= 2 and len(self.data) >= 50:
-            ensemble_finding = self._isolation_forest_ensemble(numeric_cols)
+            ensemble_finding = self._multivariate_ensemble(numeric_cols)
             if ensemble_finding:
-                findings.append(ensemble_finding)
+                findings.extend(ensemble_finding)
 
         return findings
 
@@ -310,66 +310,92 @@ class AnomalyDetector:
             "max_zscore": round(float(z_scores.max()), 2),
         }
 
-    def _isolation_forest_ensemble(self, numeric_cols: List[str]) -> Optional[Finding]:
-        """Run Isolation Forest for multivariate anomaly detection."""
+    def _multivariate_ensemble(self, numeric_cols: List[str]) -> List[Finding]:
+        """Run Isolation Forest and LOF for multivariate anomaly detection."""
+        findings = []
         try:
             from sklearn.ensemble import IsolationForest
+            from sklearn.neighbors import LocalOutlierFactor
+            from sklearn.preprocessing import StandardScaler
         except ImportError:
-            logger.debug("sklearn not available for Isolation Forest")
-            return None
+            logger.debug("sklearn not available for multivariate ensemble")
+            return findings
 
-        # Prepare data: use at most max_samples
         subset = self.data[numeric_cols].dropna()
         if len(subset) < 30:
-            return None
+            return findings
 
         max_samples = min(len(subset), self.config.isolation_forest_max_samples)
         if len(subset) > max_samples:
             subset = subset.sample(n=max_samples, random_state=self.config.random_seed)
 
+        # Scale data for distance-based methods like LOF
+        scaler = StandardScaler()
+        scaled_subset = scaler.fit_predict(subset) if hasattr(scaler, "fit_predict") else scaler.fit_transform(subset)
+
+        # Isolation Forest
         try:
             iso = IsolationForest(
                 contamination=self.config.isolation_forest_contamination,
                 random_state=self.config.random_seed,
                 n_jobs=1,
             )
-            preds = iso.fit_predict(subset)
-            n_anomalies = int((preds == -1).sum())
-            anomaly_pct = n_anomalies / len(subset) * 100
-
-            if n_anomalies > 0:
-                return Finding(
+            preds_iso = iso.fit_predict(subset)
+            n_iso = int((preds_iso == -1).sum())
+            if n_iso > 0:
+                pct_iso = n_iso / len(subset) * 100
+                findings.append(Finding(
                     id="ANOM-IFOREST-001",
                     category="anomaly",
-                    severity=Severity.MEDIUM if anomaly_pct > 5 else Severity.LOW,
-                    confidence=round(min(0.7, 0.3 + anomaly_pct / 50), 2),
+                    severity=Severity.MEDIUM if pct_iso > 5 else Severity.LOW,
+                    evidence_score=round(min(0.7, 0.3 + pct_iso / 50), 2),
                     title="Multivariate anomalies detected (Isolation Forest)",
-                    description=(
-                        f"Isolation Forest identified {n_anomalies} potential anomalies "
-                        f"({anomaly_pct:.1f}%) across {len(numeric_cols)} numeric features."
-                    ),
+                    description=f"Isolation Forest identified {n_iso} potential anomalies ({pct_iso:.1f}%) across {len(numeric_cols)} numeric features.",
                     evidence={
-                        "anomaly_count": n_anomalies,
-                        "anomaly_percentage": round(anomaly_pct, 2),
+                        "anomaly_count": n_iso,
+                        "anomaly_percentage": round(pct_iso, 2),
                         "features_used": len(numeric_cols),
                         "sample_size": len(subset),
-                        "contamination": self.config.isolation_forest_contamination,
                     },
-                    statistical_test="Isolation Forest (ensemble tree-based)",
-                    recommendation=(
-                        "Review flagged records to determine if they represent "
-                        "data errors, rare events, or legitimate edge cases."
-                    ),
-                    limitations=(
-                        "Isolation Forest assumes anomalies are few and different. "
-                        "Results are sensitive to the contamination parameter. "
-                        "Not all flagged records are necessarily problematic."
-                    ),
-                )
+                    statistical_test="Isolation Forest",
+                    recommendation="Review flagged multivariate anomalies.",
+                    limitations="Sensitive to contamination parameter. Flagged points are just statistically rare.",
+                ))
         except Exception as e:
             logger.warning("Isolation Forest failed: %s", e)
 
-        return None
+        # Local Outlier Factor (LOF)
+        try:
+            lof = LocalOutlierFactor(
+                n_neighbors=20,
+                contamination=self.config.isolation_forest_contamination,
+                n_jobs=1,
+            )
+            preds_lof = lof.fit_predict(scaled_subset)
+            n_lof = int((preds_lof == -1).sum())
+            if n_lof > 0:
+                pct_lof = n_lof / len(subset) * 100
+                findings.append(Finding(
+                    id="ANOM-LOF-001",
+                    category="anomaly",
+                    severity=Severity.MEDIUM if pct_lof > 5 else Severity.LOW,
+                    evidence_score=round(min(0.7, 0.3 + pct_lof / 50), 2),
+                    title="Local anomalies detected (LOF)",
+                    description=f"Local Outlier Factor identified {n_lof} potential local anomalies ({pct_lof:.1f}%) across {len(numeric_cols)} features.",
+                    evidence={
+                        "anomaly_count": n_lof,
+                        "anomaly_percentage": round(pct_lof, 2),
+                        "features_used": len(numeric_cols),
+                        "sample_size": len(subset),
+                    },
+                    statistical_test="Local Outlier Factor (LOF)",
+                    recommendation="Review flagged local anomalies.",
+                    limitations="LOF identifies points that are outliers relative to their local neighborhood, not globally.",
+                ))
+        except Exception as e:
+            logger.warning("LOF failed: %s", e)
+
+        return findings
 
     # ── Duplicate Analysis ───────────────────────────────────────────
 
@@ -387,7 +413,7 @@ class AnomalyDetector:
                 id="ANOM-DUP-001",
                 category="anomaly",
                 severity=severity,
-                confidence=0.95,
+                evidence_score=0.95,
                 title="High duplicate row rate",
                 description=f"{dup_count} exact duplicate rows ({dup_pct:.1f}%) detected.",
                 evidence={
@@ -404,7 +430,7 @@ class AnomalyDetector:
                 id="ANOM-DUP-001",
                 category="anomaly",
                 severity=Severity.LOW,
-                confidence=0.9,
+                evidence_score=0.9,
                 title="Duplicate rows present",
                 description=f"{dup_count} exact duplicate rows ({dup_pct:.1f}%) detected.",
                 evidence={
@@ -435,7 +461,7 @@ class AnomalyDetector:
                     id=f"ANOM-ROUND-{col[:20].upper().replace(' ', '_')}",
                     category="anomaly",
                     severity=Severity.LOW,
-                    confidence=round(min(0.7, round_10), 2),
+                    evidence_score=round(min(0.7, round_10), 2),
                     title=f"Round number clustering in '{col}'",
                     description=(
                         f"{round_10*100:.1f}% of values are multiples of 10. "
@@ -459,7 +485,7 @@ class AnomalyDetector:
                         id=f"ANOM-INVALID-{col[:20].upper().replace(' ', '_')}",
                         category="data_quality",
                         severity=Severity.HIGH,
-                        confidence=0.85,
+                        evidence_score=0.85,
                         title=f"Potentially invalid negative values in '{col}'",
                         description=(
                             f"{neg_count} negative values found in '{col}', "
@@ -502,7 +528,7 @@ class AnomalyDetector:
                         id=f"ANOM-LOWVAR-{col[:20].upper().replace(' ', '_')}",
                         category="anomaly",
                         severity=Severity.LOW,
-                        confidence=0.5,
+                        evidence_score=0.5,
                         title=f"Very low variance in '{col}'",
                         description=(
                             f"Coefficient of variation is {cv:.4f}, indicating "

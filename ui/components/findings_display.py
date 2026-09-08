@@ -48,31 +48,34 @@ def _render_single_finding(finding: dict):
     severity = finding.get("severity", "info")
     title = finding.get("title", "")
     description = finding.get("description", "")
-    confidence = finding.get("confidence", 0)
+    evidence_score = finding.get("evidence_score", finding.get("confidence", 0))
     recommendation = finding.get("recommendation", "")
     limitations = finding.get("limitations", "")
     evidence = finding.get("evidence", {})
 
-    severity_config = {
-        "critical": ("🔴", "error"),
-        "high": ("🟠", "warning"),
-        "medium": ("🟡", "warning"),
-        "low": ("🔵", "info"),
-        "info": ("ℹ️", "info"),
+    severity_colors = {
+        "critical": "#E74C3C",
+        "high": "#E67E22",
+        "medium": "#F39C12",
+        "low": "#3498DB",
+        "info": "#8a8f98",
     }
+    
+    emoji = {
+        "critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🔵", "info": "ℹ️",
+    }.get(severity, "📌")
+    
+    color = severity_colors.get(severity, "#8a8f98")
 
-    emoji, st_type = severity_config.get(severity, ("📌", "info"))
-
-    # Use appropriate streamlit element
-    if severity in ("critical", "high"):
-        st.error(f"{emoji} **{title}**")
-    elif severity == "medium":
-        st.warning(f"{emoji} **{title}**")
-    else:
-        st.info(f"{emoji} **{title}**")
-
-    st.markdown(f"*Severity: {severity.upper()} | Confidence: {confidence:.0%}*")
-    st.markdown(description)
+    st.markdown(f"""
+    <div style="background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid rgba(255, 255, 255, 0.05); border-left: 4px solid {color}; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; margin-bottom: 0.5rem; font-size: 1.3rem; font-weight: 500;">{emoji} {title}</h3>
+        <div style="font-size: 0.85rem; color: #8a8f98; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">
+            SEVERITY: <strong style="color: {color}">{severity.upper()}</strong> &nbsp;|&nbsp; EVIDENCE SCORE: <strong>{evidence_score:.2f}</strong>
+        </div>
+        <p style="color: #ededed; font-size: 1rem; line-height: 1.5;">{description}</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     if recommendation:
         st.markdown(f"💡 **Recommendation:** {recommendation}")

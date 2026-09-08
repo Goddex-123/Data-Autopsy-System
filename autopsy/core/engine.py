@@ -115,7 +115,7 @@ class AnalysisEngine:
                 id=f"ERR-{name.upper()}-001",
                 category="error",
                 severity="info",
-                confidence=1.0,
+                evidence_score=1.0,
                 title=f"Analysis error in {name}",
                 description=f"The {name} analysis encountered an error: {str(e)}",
                 recommendation="Check data format and try again.",
@@ -206,6 +206,7 @@ class AnalysisEngine:
 
         self.health_score = scorer.calculate_health_score(
             self.findings,
+            profile=self.profile,
             completeness_pct=completeness,
             validity_pct=validity_pct,
             consistency_pct=consistency_pct,

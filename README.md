@@ -1,27 +1,27 @@
-# 🏥 Data Autopsy System
+# 🔬 Data Autopsy System (v2.0)
 
-![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Docker](https://img.shields.io/badge/docker-ready-blue)
-![CI Status](https://github.com/Goddex-123/Data-Autopsy-System/actions/workflows/ci.yml/badge.svg)
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Click%20Here-brightgreen?style=for-the-badge&logo=streamlit)](https://data-autopsy-system.streamlit.app)
-
-> **Automated Exploratory Data Analysis (EDA) and Quality Assurance platform for rapid dataset profiling and anomaly detection.**
+> **A professional, scientifically defensible, production-quality data auditing platform.**
 
 ---
 
 ## 📋 Executive Summary
 
-The **Data Autopsy System** accelerates the initial phase of data science projects by automating the tedious process of data profiling. It acts as a "medical examiner" for your datasets, dissecting CSV/Excel files to reveal missing values, outliers, correlation hotspots, and distribution shifts.
+The **Data Autopsy System** moves beyond simple exploratory data analysis (EDA) to provide deep statistical forensics, bias detection, privacy auditing, and ML target leakage analysis. It evaluates datasets with rigorous statistical tests (KS, PSI, Wasserstein, Chi-Square, Mann-Whitney U, LOF Ensembles) and provides evidence-based, proportional health scoring.
 
-Using Streamlit for the frontend and Pandas/Scikit-Learn for the backend, it generates interactive reports that provide deep insights into data health before modeling begins.
+Designed for data scientists, ML engineers, and data governance teams, it acts as a comprehensive "medical examiner" for your datasets.
 
 ### Key Capabilities
-- **Automated Profiling**: Instant generation of statistical summaries (mean, median, skewness, kurtosis).
-- **Data Quality Checks**: Detection of nulls, duplicates, and inconsistent data types.
-- **Visual Analytics**: Dynamic distribution plots, correlation heatmaps, and pair plots.
-- **Exportable Reports**: One-click PDF/HTML export of autopsy results.
+
+- **Statistical Forensics**: Missingness mechanisms (MCAR/MAR diagnostics), Benford's Law conformance, LOF (Local Outlier Factor) ensemble anomalies.
+- **Bias & Representation**: Population mismatch detection, class imbalance, and distribution skewness via Chi-Square and goodness-of-fit.
+- **Privacy & PII**: Tokenized column heuristics and regex pattern matching to detect data leaks without exposing sensitive values.
+- **ML Dataset Auditing**: Target leakage detection, feature redundancy checks, and class imbalance metrics.
+- **Drift Detection**: Advanced dataset comparison using Kolmogorov-Smirnov (KS) tests, Population Stability Index (PSI), and Wasserstein distances.
+- **Data Provenance**: Cryptographic dataset fingerprinting (SHA-256) via optimized pandas object hashing.
 
 ---
 
@@ -30,25 +30,26 @@ Using Streamlit for the frontend and Pandas/Scikit-Learn for the backend, it gen
 ```mermaid
 graph TD
     subgraph Input
-        Upload[File Upload] --> Validator[Schema Validator]
+        Upload[Dataset Upload] --> Schema[Type Inference & Schema]
     end
 
-    subgraph Core Engine
-        Validator --> Profiler[Statistical Profiler]
-        Validator --> QA[Quality Checker]
+    subgraph Analysis Engine
+        Schema --> Detectors
         
-        Profiler --> Stats[Desc. Statistics]
-        Profiler --> Corr[Correlations]
-        
-        QA --> Nulls[Missing Data Analysis]
-        QA --> Outliers[Outlier Detection]
+        subgraph Detectors
+            Anomaly[Anomaly Detector]
+            Missing[Missing Data Analyzer]
+            Bias[Bias & Representation]
+            Privacy[Privacy / PII]
+            MLAudit[ML Leakage & Audit]
+            Drift[Drift Detector]
+        end
     end
 
-    subgraph Visualization
-        Stats --> Dash[Streamlit Dashboard]
-        Corr --> Dash
-        Nulls --> Dash
-        Outliers --> Dash
+    subgraph Scoring & Reporting
+        Detectors --> Evidence[Evidence Accumulation]
+        Evidence --> Engine[Proportional Scoring Engine]
+        Engine --> Output[Health Scores & Verdicts]
     end
 ```
 
@@ -57,7 +58,7 @@ graph TD
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.11+
 - Docker (optional)
 - Make (optional)
 
@@ -74,7 +75,7 @@ graph TD
    # Or manually: pip install -r requirements.txt
    ```
 
-3. **Run the dashboard**
+3. **Run the Dashboard**
    ```bash
    streamlit run app.py
    ```
@@ -95,22 +96,12 @@ Access the application at `http://localhost:8501`.
 
 ## 🧪 Testing & Quality Assurance
 
-- **Unit Tests**: Verification of statistical calculations and file parsers.
-- **Integration Tests**: End-to-end report generation workflow.
-- **Linting**: PEP8 compliance.
+The system is rigorously tested with deterministic synthetic data fixtures.
+To run the full test suite (including validation of statistical boundaries):
 
-To run tests locally:
 ```bash
-make test
+pytest tests/ -v
 ```
-
----
-
-## 📊 Performance
-
-- **Processing Speed**: Profiles 1M rows in <5 seconds.
-- **Memory Efficiency**: Optimized chunks for handling large datasets (up to 500MB upload).
-- **Extensibility**: Modular design allows adding custom quality checks.
 
 ---
 

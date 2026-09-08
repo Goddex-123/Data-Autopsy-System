@@ -66,8 +66,8 @@ class TestOutlierDetection:
         high_findings = [f for f in findings if f.severity in (Severity.HIGH, Severity.CRITICAL)]
         assert len(high_findings) == 0
 
-    def test_isolation_forest_runs(self):
-        """Isolation Forest should work on multi-column data."""
+    def test_multivariate_ensemble_runs(self):
+        """Multivariate Ensemble should work on multi-column data."""
         np.random.seed(42)
         n = 200
         df = pd.DataFrame({
@@ -75,7 +75,7 @@ class TestOutlierDetection:
             "b": np.concatenate([np.random.normal(0, 1, n-5), [100, -100, 50, -50, 200]]),
         })
         detector = AnomalyDetector(df)
-        finding = detector._isolation_forest_ensemble(["a", "b"])
+        finding = detector._multivariate_ensemble(["a", "b"])
         assert finding is not None or True  # May or may not detect
 
 
