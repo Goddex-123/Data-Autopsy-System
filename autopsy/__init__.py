@@ -1,129 +1,242 @@
 """
-Data Autopsy System - Forensic Dataset Analysis
+Data Autopsy System — Public API
 
-A master-level forensic analysis toolkit for investigating datasets.
+Professional data quality, statistical forensics, and ML dataset auditing.
+
+Usage:
+    from autopsy import DataAutopsy
+
+    autopsy = DataAutopsy(df)
+    results = autopsy.investigate()
+    autopsy.report.save("report.html")
 """
 
-from .provenance import DataProvenance
-from .bias_detector import BiasDetector
-from .anomaly_detector import AnomalyDetector
-from .missing_analyzer import MissingDataAnalyzer
-from .robustness import RobustnessTester
-from .visualizer import ForensicVisualizer
+__version__ = "2.0.0"
 
-__version__ = "1.0.0"
-__author__ = "Data Autopsy Team"
+import logging
+from typing import Dict, Optional
+
+import pandas as pd
+
+from .core.config import AnalysisConfig
+from .core.engine import AnalysisEngine
+from .core.models import Finding, Severity, SemanticType, HealthScore, DatasetProfile
+from .core.schema import SchemaAnalyzer
+from .core.scoring import ScoringEngine
+from .provenance.fingerprint import DatasetFingerprint
+from .reporting.generator import ReportGenerator
+from .visualization.charts import ForensicCharts
+
+logger = logging.getLogger(__name__)
 
 
 class DataAutopsy:
     """
-    Main forensic investigation class that orchestrates all analysis modules.
-    
-    Treats datasets like crime scenes - investigating provenance, bias,
-    anomalies, missing data, and conclusion robustness.
+    Main entry point for the Data Autopsy System.
+
+    Orchestrates dataset analysis across data quality, missing data,
+    anomaly detection, bias, privacy, ML audit, drift, and robustness.
     """
-    
-    def __init__(self, data_source):
+
+    def __init__(
+        self,
+        data,
+        config: Optional[AnalysisConfig] = None,
+        source_path: str = "DataFrame",
+    ):
         """
-        Initialize the Data Autopsy investigation.
-        
+        Initialize Data Autopsy.
+
         Args:
-            data_source: Path to CSV file, pandas DataFrame, or URL
+            data: Either a pandas DataFrame or a file path (CSV).
+            config: Optional analysis configuration.
+            source_path: Label for the data source.
         """
-        import pandas as pd
-        
-        if isinstance(data_source, pd.DataFrame):
-            self.data = data_source
-            self.source_path = "DataFrame"
-        elif isinstance(data_source, str):
-            self.source_path = data_source
-            self.data = pd.read_csv(data_source)
+        if isinstance(data, str):
+            self.source_path = data
+            self.data = pd.read_csv(data)
+        elif isinstance(data, pd.DataFrame):
+            self.data = data
+            self.source_path = source_path
         else:
-            raise ValueError("data_source must be a file path or pandas DataFrame")
-        
-        # Initialize all forensic modules
-        self.provenance = DataProvenance(self.data, self.source_path)
-        self.bias_detector = BiasDetector(self.data)
-        self.anomaly_detector = AnomalyDetector(self.data)
-        self.missing_analyzer = MissingDataAnalyzer(self.data)
-        self.robustness_tester = RobustnessTester(self.data)
-        self.visualizer = ForensicVisualizer(self.data)
-        
-        # Investigation results
-        self.findings = {}
-        
-    def investigate(self, output_dir="output"):
+            raise TypeError(f"Expected DataFrame or file path, got {type(data)}")
+
+        self.config = config or AnalysisConfig()
+        self.engine = AnalysisEngine(self.data, self.config, self.source_path)
+        self.report: Optional[ReportGenerator] = None
+        self.findings = {}  # Legacy compatibility
+        self._results: Optional[Dict] = None
+
+    def quick_scan(self) -> dict:
         """
-        Run complete forensic investigation on the dataset.
-        
-        Args:
-            output_dir: Directory to save visual evidence
-            
+        Run a quick scan returning basic dataset statistics.
+
         Returns:
-            ForensicReport: Complete investigation report
+            Dictionary with basic profile information.
         """
-        from reports.generator import ForensicReport
-        import os
-        
-        os.makedirs(output_dir, exist_ok=True)
-        
-        print("🔬 Starting forensic investigation...")
-        
-        # 1. Provenance Analysis
-        print("  📋 Analyzing data provenance...")
-        self.findings['provenance'] = self.provenance.analyze()
-        
-        # 2. Bias Detection
-        print("  ⚖️ Detecting biases...")
-        self.findings['bias'] = self.bias_detector.analyze()
-        
-        # 3. Anomaly Detection
-        print("  🚨 Scanning for anomalies...")
-        self.findings['anomalies'] = self.anomaly_detector.analyze()
-        
-        # 4. Missing Data Analysis
-        print("  🕳️ Investigating missing data...")
-        self.findings['missing'] = self.missing_analyzer.analyze()
-        
-        # 5. Robustness Testing
-        print("  🧪 Testing conclusion robustness...")
-        self.findings['robustness'] = self.robustness_tester.analyze()
-        
-        # 6. Generate Visual Evidence
-        print("  📊 Generating visual evidence...")
-        self.findings['visualizations'] = self.visualizer.generate_all(
-            self.findings, output_dir
-        )
-        
-        print("✅ Investigation complete!")
-        
-        # Generate report
-        report = ForensicReport(self.findings, self.source_path, output_dir)
-        return report
-    
-    def quick_scan(self):
-        """
-        Perform a quick preliminary scan without full analysis.
-        
-        Returns:
-            dict: Quick scan results with key concerns
-        """
+        schema = SchemaAnalyzer(self.data)
+        profile = schema.analyze()
+
         return {
-            'rows': len(self.data),
-            'columns': len(self.data.columns),
-            'missing_percentage': (self.data.isnull().sum().sum() / self.data.size) * 100,
-            'duplicate_rows': self.data.duplicated().sum(),
-            'numeric_columns': len(self.data.select_dtypes(include=['number']).columns),
-            'categorical_columns': len(self.data.select_dtypes(include=['object']).columns),
+            "rows": profile.row_count,
+            "columns": profile.column_count,
+            "total_cells": profile.total_cells,
+            "missing_cells": profile.missing_cells,
+            "missing_percentage": round(profile.missing_percentage, 2),
+            "duplicate_rows": profile.duplicate_rows,
+            "duplicate_percentage": round(profile.duplicate_percentage, 2),
+            "memory_usage_mb": profile.memory_usage_mb,
+            "numeric_columns": len(self.data.select_dtypes(include=["number"]).columns),
+            "categorical_columns": len(self.data.select_dtypes(include=["object", "category"]).columns),
         }
+
+    def investigate(
+        self,
+        output_dir: str = "output",
+        target_column: Optional[str] = None,
+        reference_data: Optional[pd.DataFrame] = None,
+        generate_visuals: bool = True,
+    ) -> ReportGenerator:
+        """
+        Run full forensic investigation.
+
+        Args:
+            output_dir: Directory for output files.
+            target_column: Optional target column for ML audit.
+            reference_data: Optional reference dataset for drift detection.
+            generate_visuals: Whether to generate visualization files.
+
+        Returns:
+            ReportGenerator instance for saving reports.
+        """
+        logger.info("Starting full investigation...")
+
+        # Run analysis engine
+        self._results = self.engine.run_full_analysis(
+            target_column=target_column,
+            reference_data=reference_data,
+        )
+
+        # Generate fingerprint
+        fp = DatasetFingerprint(self.data, self.source_path)
+        fingerprint = fp.generate()
+
+        # Generate visualizations
+        viz_paths = {}
+        if generate_visuals:
+            try:
+                charts = ForensicCharts(self.data, self.engine.profile)
+                viz_paths = charts.generate_all(
+                    self.engine.findings,
+                    self.engine.health_score,
+                    output_dir,
+                )
+            except Exception as e:
+                logger.warning("Visualization generation failed: %s", e)
+
+        # Build legacy findings dict for backward compatibility
+        self.findings = self._build_legacy_findings(viz_paths)
+
+        # Create report generator
+        self.report = ReportGenerator(
+            findings=self.engine.findings,
+            health_score=self.engine.health_score,
+            profile=self.engine.profile,
+            fingerprint=fingerprint,
+            source_path=self.source_path,
+            output_dir=output_dir,
+        )
+
+        return self.report
+
+    def _build_legacy_findings(self, viz_paths: dict) -> dict:
+        """
+        Build a legacy-compatible findings dictionary.
+        This preserves backward compatibility with the old app.py.
+        """
+        findings = self.engine.findings
+        health = self.engine.health_score
+        profile = self.engine.profile
+
+        # Group findings by category
+        by_category = {}
+        for f in findings:
+            if f.category not in by_category:
+                by_category[f.category] = []
+            by_category[f.category].append(f)
+
+        # Build legacy structure
+        legacy = {
+            "provenance": {
+                "metadata": {
+                    "source": self.source_path,
+                    "rows": profile.row_count if profile else 0,
+                    "columns": profile.column_count if profile else 0,
+                    "memory_usage_mb": profile.memory_usage_mb if profile else 0,
+                },
+                "credibility_score": health.overall if health else 0,
+                "concerns": [
+                    f.description for f in by_category.get("provenance", [])
+                ],
+            },
+            "bias": {
+                "overall_bias_score": max(
+                    0, 100 - health.components.get("bias_risk", type("", (), {"score": 100})).score
+                ) if health else 0,
+                "critical_warnings": [
+                    f.description for f in by_category.get("bias", [])
+                    if f.severity in (Severity.CRITICAL, Severity.HIGH)
+                ],
+            },
+            "anomalies": {
+                "overall_anomaly_score": max(
+                    0, 100 - health.components.get("anomaly_risk", type("", (), {"score": 100})).score
+                ) if health else 0,
+                "red_flags": [
+                    f.description for f in by_category.get("anomaly", [])
+                    if f.severity in (Severity.CRITICAL, Severity.HIGH)
+                ],
+            },
+            "missing": {
+                "overall_missing_score": max(
+                    0, 100 - health.components.get("completeness", type("", (), {"score": 100})).score
+                ) if health else 0,
+                "overview": {
+                    "total_cells": profile.total_cells if profile else 0,
+                    "missing_cells": profile.missing_cells if profile else 0,
+                    "missing_percentage": profile.missing_percentage if profile else 0,
+                    "complete_percentage": 100 - (profile.missing_percentage if profile else 0),
+                    "columns_with_missing": sum(
+                        1 for cp in (profile.columns.values() if profile else [])
+                        if cp.null_count > 0
+                    ),
+                },
+                "concerns": [
+                    f.description for f in by_category.get("missing_data", [])
+                ],
+            },
+            "robustness": {
+                "overall_robustness_score": (
+                    health.components.get("robustness", type("", (), {"score": 100})).score
+                ) if health else 100,
+                "fragility_warnings": [
+                    f.description for f in by_category.get("robustness", [])
+                ],
+            },
+            "visualizations": viz_paths,
+            "health_score": health.to_dict() if health else {},
+            "all_findings": [f.to_dict() for f in findings],
+        }
+
+        return legacy
 
 
 __all__ = [
-    'DataAutopsy',
-    'DataProvenance',
-    'BiasDetector', 
-    'AnomalyDetector',
-    'MissingDataAnalyzer',
-    'RobustnessTester',
-    'ForensicVisualizer'
+    "DataAutopsy",
+    "AnalysisConfig",
+    "Finding",
+    "Severity",
+    "SemanticType",
+    "HealthScore",
+    "DatasetProfile",
 ]

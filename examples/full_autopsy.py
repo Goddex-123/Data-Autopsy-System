@@ -54,7 +54,7 @@ def generate_problematic_dataset(n_rows: int = 1000) -> pd.DataFrame:
                                    p=[0.25, 0.25, 0.2, 0.2, 0.1]),
         'status': np.random.choice(['Active', 'Inactive', 'Pending'], n_rows,
                                    p=[0.9, 0.05, 0.05]),
-        'transaction_date': pd.date_range('2023-01-01', periods=n_rows, freq='H'),
+        'transaction_date': pd.date_range('2023-01-01', periods=n_rows, freq='h'),
         'amount': np.where(
             np.random.random(n_rows) < 0.15,
             -999,
