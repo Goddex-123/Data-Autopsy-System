@@ -19,6 +19,7 @@ from ui.components.header import render_header
 from ui.components.sidebar import render_sidebar
 from ui.components.score_cards import render_health_overview
 from ui.components.findings_display import render_findings_by_category, render_severity_summary
+from ui.components.dashboards import render_data_dashboard
 from autopsy.sample_data import generate_massive_sample
 
 # ── Page Configuration ───────────────────────────────────────────────
@@ -220,16 +221,19 @@ def main():
                     sev = f.get("severity", "info")
                     severity_counts[sev] = severity_counts.get(sev, 0) + 1
                 render_severity_summary(severity_counts)
-
-                # Detailed findings
-                st.markdown("---")
-                st.markdown("## 🔍 Detailed Findings")
-                render_findings_by_category(all_findings)
+                
+                # Interactive Data Dashboard
+                render_data_dashboard(df)
 
                 # Visualizations
                 if options["generate_visuals"]:
                     viz = findings_data.get("visualizations", {})
                     _render_visualizations(viz)
+
+                # Detailed findings
+                st.markdown("---")
+                st.markdown("## 🔍 Detailed Findings")
+                render_findings_by_category(all_findings)
 
                 # Download reports
                 _render_downloads(report, output_dir)
